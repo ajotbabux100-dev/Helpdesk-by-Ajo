@@ -14,6 +14,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/reports': 'Reports',
   '/audit': 'Audit Log',
   '/settings': 'Settings',
+  '/notifications': 'Notifications',
 }
 
 export function Topbar() {
@@ -24,8 +25,12 @@ export function Topbar() {
   const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
-    api.get('/notifications/unread_count/').then((r) => setUnread(r.data.count)).catch(() => {})
-  }, [])
+    const refresh = () =>
+      api.get('/notifications/unread_count/').then((r) => setUnread(r.data.count)).catch(() => {})
+    refresh()
+    const id = setInterval(refresh, 60000)
+    return () => clearInterval(id)
+  }, [pathname])
 
   const handleLogout = async () => {
     try { await api.post('/auth/logout/', { refresh: refreshToken }) } catch {}
