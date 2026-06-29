@@ -90,6 +90,25 @@ class TicketViewSet(viewsets.ModelViewSet):
         send_ticket_notification.delay('ticket_assigned', ticket.id)
         return Response(TicketDetailSerializer(ticket).data)
 
+    @action(detail=True, methods=['post'])
+    def reopen(self, request, pk=None):
+        ticket = self.get_object()
+        if ticket.status not in (Ticket.RESOLVED, Ticket.CLOSED):
+            return Response({'error': 'Only resolved or closed tickets can be reopened.'}, status=400)
+
+        old_status = ticket.status
+        ticket.status = Ticket.REOPENED
+        ticket.resolved_at = None
+        ticket.closed_at = None
+        ticket.save(update_fields=['status', 'resolved_at', 'closed_at'])
+
+        log_action(request.user, AuditLog.STATUS_CHANGED,
+                   description=f'Ticket {ticket.ticket_number} reopened',
+                   old_value=old_status, new_value=Ticket.REOPENED,
+                   ticket=ticket, request=request)
+        send_ticket_notification.delay('status_updated', ticket.id)
+        return Response(TicketDetailSerializer(ticket).data)
+
     @action(detail=True, methods=['patch'], permission_classes=[IsAgentOrAbove])
     def update_status(self, request, pk=None):
         ticket = self.get_object()
