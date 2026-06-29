@@ -48,6 +48,27 @@ class LogoutView(generics.GenericAPIView):
         return Response({'detail': 'Logged out successfully.'})
 
 
+def _sync_department_manager(user, old_dept_id=None, old_role=None):
+    """
+    Keep Department.manager in sync with User.role + User.department.
+    - If a user's role is 'manager' and they have a department → auto-set as that department's manager.
+    - If they moved departments (role still manager) → clear manager link on the old department.
+    - If their role changed away from 'manager' → clear manager link on the old department.
+    """
+    from departments.models import Department
+    # Role changed away from manager: clear old dept link if they were the manager
+    if old_role == 'manager' and user.role != 'manager' and old_dept_id:
+        Department.objects.filter(id=old_dept_id, manager=user).update(manager=None)
+        return
+    if user.role == 'manager':
+        # Moved to a different department: clear manager link on old dept
+        if old_dept_id and old_dept_id != user.department_id:
+            Department.objects.filter(id=old_dept_id, manager=user).update(manager=None)
+        # Set as new department's manager
+        if user.department_id:
+            Department.objects.filter(id=user.department_id).update(manager=user)
+
+
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.select_related('department').all()
     serializer_class = UserSerializer
@@ -67,6 +88,16 @@ class UserViewSet(viewsets.ModelViewSet):
         if user.is_admin:
             return User.objects.select_related('department').all()
         return User.objects.filter(id=user.id)
+
+    def perform_create(self, serializer):
+        user = serializer.save()
+        _sync_department_manager(user)
+
+    def perform_update(self, serializer):
+        old_dept_id = serializer.instance.department_id
+        old_role = serializer.instance.role
+        user = serializer.save()
+        _sync_department_manager(user, old_dept_id=old_dept_id, old_role=old_role)
 
     @action(detail=False, methods=['get', 'patch'], permission_classes=[IsAuthenticated])
     def me(self, request):
