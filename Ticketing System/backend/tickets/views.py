@@ -167,6 +167,10 @@ class TicketCategoryViewSet(viewsets.ModelViewSet):
     """
     GET  — all authenticated users (to populate the form dropdown)
     POST/PATCH/DELETE — admins only
+
+    Query params:
+      ?active_only=true   — only return active categories
+      ?department=<id>    — return categories linked to this dept PLUS global (no dept) categories
     """
     serializer_class = TicketCategorySerializer
     filter_backends = [SearchFilter, OrderingFilter]
@@ -174,9 +178,18 @@ class TicketCategoryViewSet(viewsets.ModelViewSet):
     ordering_fields = ['order', 'name']
 
     def get_queryset(self):
-        qs = TicketCategory.objects.all()
+        from django.db.models import Q
+        qs = TicketCategory.objects.prefetch_related('departments')
+
         if self.request.query_params.get('active_only') == 'true':
             qs = qs.filter(is_active=True)
+
+        dept_id = self.request.query_params.get('department')
+        if dept_id:
+            qs = qs.filter(
+                Q(departments__id=dept_id) | Q(departments__isnull=True)
+            ).distinct()
+
         return qs
 
     def get_permissions(self):

@@ -84,7 +84,8 @@ export default function SettingsPage() {
   const [categories, setCategories] = useState<TicketCategory[]>([])
   const [catModal, setCatModal] = useState(false)
   const [catEditing, setCatEditing] = useState<TicketCategory | null>(null)
-  const [catForm, setCatForm] = useState({ name: '', slug: '', description: '', color: '#6b7280', is_active: true })
+  const [catForm, setCatForm] = useState({ name: '', slug: '', description: '', color: '#6b7280', is_active: true, department_ids: [] as number[] })
+  const [allDepartments, setAllDepartments] = useState<{ id: number; name: string }[]>([])
   const [catSaving, setCatSaving] = useState(false)
   const [catError, setCatError] = useState('')
   const [preview, setPreview] = useState('TKT-2026-00001')
@@ -104,7 +105,8 @@ export default function SettingsPage() {
       api.get('/branding/'),
       api.get('/tickets/form-config/'),
       api.get('/tickets/categories/'),
-    ]).then(([bRes, fRes, cRes]) => {
+      api.get('/departments/?is_active=true'),
+    ]).then(([bRes, fRes, cRes, dRes]) => {
       const s: SystemSettings = bRes.data
       setSettings(s)
       setPreview(s.ticket_number_preview || 'TKT-2026-00001')
@@ -112,6 +114,7 @@ export default function SettingsPage() {
       if (s.favicon_url) setFaviconPreview(s.favicon_url)
       setFormConfig(fRes.data)
       setCategories(cRes.data.results ?? cRes.data)
+      setAllDepartments(dRes.data.results ?? dRes.data)
       setLoading(false)
     })
   }, [user, router])
@@ -153,10 +156,10 @@ export default function SettingsPage() {
   const openCatModal = (cat?: TicketCategory) => {
     if (cat) {
       setCatEditing(cat)
-      setCatForm({ name: cat.name, slug: cat.slug, description: cat.description, color: cat.color, is_active: cat.is_active })
+      setCatForm({ name: cat.name, slug: cat.slug, description: cat.description, color: cat.color, is_active: cat.is_active, department_ids: cat.department_ids ?? [] })
     } else {
       setCatEditing(null)
-      setCatForm({ name: '', slug: '', description: '', color: '#6b7280', is_active: true })
+      setCatForm({ name: '', slug: '', description: '', color: '#6b7280', is_active: true, department_ids: [] })
     }
     setCatError('')
     setCatModal(true)
@@ -655,6 +658,16 @@ export default function SettingsPage() {
                         </p>
                         <p className="text-xs text-gray-400 font-mono">{cat.slug}</p>
                         {cat.description && <p className="text-xs text-gray-500 truncate">{cat.description}</p>}
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {cat.department_names && cat.department_names.length > 0
+                            ? cat.department_names.map((d) => (
+                                <span key={d.id} className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-blue-50 text-blue-700 border border-blue-100">
+                                  {d.name}
+                                </span>
+                              ))
+                            : <span className="text-xs text-gray-400 italic">All departments (global)</span>
+                          }
+                        </div>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <button
@@ -753,6 +766,38 @@ export default function SettingsPage() {
                   <span className="ml-auto inline-flex items-center px-3 py-1 rounded-full text-white text-xs font-medium" style={{ backgroundColor: catForm.color }}>
                     {catForm.name || 'Preview'}
                   </span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Departments
+                  <span className="text-xs font-normal text-gray-400 ml-1">(leave empty = visible for all departments)</span>
+                </label>
+                <div className="border border-gray-200 rounded-lg divide-y divide-gray-100 max-h-48 overflow-y-auto">
+                  {allDepartments.map((d) => {
+                    const checked = catForm.department_ids.includes(d.id)
+                    return (
+                      <label key={d.id} className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-gray-50">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() =>
+                            setCatForm((p) => ({
+                              ...p,
+                              department_ids: checked
+                                ? p.department_ids.filter((id) => id !== d.id)
+                                : [...p.department_ids, d.id],
+                            }))
+                          }
+                          className="rounded border-gray-300 text-blue-900"
+                        />
+                        <span className="text-sm text-gray-700">{d.name}</span>
+                      </label>
+                    )
+                  })}
+                  {allDepartments.length === 0 && (
+                    <p className="text-xs text-gray-400 px-3 py-3">No departments found.</p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center justify-between py-1">

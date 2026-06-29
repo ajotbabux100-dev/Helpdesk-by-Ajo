@@ -9,6 +9,11 @@ class TicketCategory(models.Model):
     color = models.CharField(max_length=7, default='#6b7280', help_text='Hex badge colour')
     is_active = models.BooleanField(default=True)
     order = models.PositiveIntegerField(default=0)
+    departments = models.ManyToManyField(
+        'departments.Department', blank=True,
+        related_name='categories',
+        help_text='Leave empty to make this category available for all departments.',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

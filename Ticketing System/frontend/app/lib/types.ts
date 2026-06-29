@@ -28,6 +28,7 @@ export interface Department {
   is_active: boolean
   member_count: number
   sla_policies: SLAPolicy[]
+  categories: { id: number; name: string; color: string; slug: string }[]
   created_at: string
   updated_at: string
 }
@@ -40,6 +41,8 @@ export interface TicketCategory {
   color: string
   is_active: boolean
   order: number
+  department_ids: number[]
+  department_names: { id: number; name: string }[]
 }
 
 export interface TicketFormConfig {

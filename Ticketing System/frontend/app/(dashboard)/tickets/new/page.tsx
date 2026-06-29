@@ -55,6 +55,22 @@ export default function NewTicketPage() {
     })
   }, [])
 
+  // Re-fetch categories filtered by selected department
+  useEffect(() => {
+    const deptId = form.department
+    const url = deptId
+      ? `/tickets/categories/?active_only=true&department=${deptId}`
+      : '/tickets/categories/?active_only=true'
+    api.get(url).then((res) => {
+      setCategories(res.data.results ?? res.data)
+      // clear selected category if it's no longer in the list
+      setForm((prev) => {
+        const still = (res.data.results ?? res.data).some((c: TicketCategory) => c.slug === prev.category)
+        return still ? prev : { ...prev, category: '' }
+      })
+    })
+  }, [form.department])
+
   const handleChange = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }))
     if (errors[field]) setErrors((prev) => { const e = { ...prev }; delete e[field]; return e })

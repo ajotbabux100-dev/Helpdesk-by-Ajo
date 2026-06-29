@@ -2,12 +2,23 @@ from rest_framework import serializers
 from .models import Ticket, Comment, Attachment, CommentAttachment, TicketFormConfig, TicketCategory
 from users.serializers import UserMinimalSerializer
 from departments.serializers import DepartmentMinimalSerializer
+from departments.models import Department
 
 
 class TicketCategorySerializer(serializers.ModelSerializer):
+    department_ids = serializers.PrimaryKeyRelatedField(
+        source='departments',
+        many=True,
+        queryset=Department.objects.all(),
+    )
+    department_names = serializers.SerializerMethodField()
+
+    def get_department_names(self, obj):
+        return [{'id': d.id, 'name': d.name} for d in obj.departments.all()]
+
     class Meta:
         model = TicketCategory
-        fields = ['id', 'name', 'slug', 'description', 'color', 'is_active', 'order']
+        fields = ['id', 'name', 'slug', 'description', 'color', 'is_active', 'order', 'department_ids', 'department_names']
 
 
 class TicketFormConfigSerializer(serializers.ModelSerializer):

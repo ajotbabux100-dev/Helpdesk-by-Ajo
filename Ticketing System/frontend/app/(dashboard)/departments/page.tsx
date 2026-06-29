@@ -8,7 +8,7 @@ import { Input } from '@/app/components/ui/input'
 import { Select } from '@/app/components/ui/select'
 import { Textarea } from '@/app/components/ui/textarea'
 import { Modal } from '@/app/components/ui/modal'
-import { Building2, Plus, Users, Mail, Edit, PowerOff, Power, UserCheck } from 'lucide-react'
+import { Building2, Plus, Users, Mail, Edit, PowerOff, Power, UserCheck, Tag } from 'lucide-react'
 
 type DeptForm = {
   name: string
@@ -158,6 +158,24 @@ export default function DepartmentsPage() {
                       <div key={sla.id} className="text-xs bg-gray-50 rounded-md px-2 py-1">
                         <span className="font-medium capitalize">{sla.priority}</span>: {sla.resolution_time_display}
                       </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {dept.categories && dept.categories.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <p className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
+                    <Tag className="w-3.5 h-3.5" /> Categories
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {dept.categories.map((cat) => (
+                      <span
+                        key={cat.id}
+                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white"
+                        style={{ backgroundColor: cat.color }}
+                      >
+                        {cat.name}
+                      </span>
                     ))}
                   </div>
                 </div>

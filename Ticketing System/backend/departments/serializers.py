@@ -21,6 +21,7 @@ class DepartmentSerializer(serializers.ModelSerializer):
     auto_assign_to_name = serializers.CharField(source='auto_assign_to.full_name', read_only=True)
     member_count = serializers.SerializerMethodField()
     sla_policies = SLAPolicySerializer(many=True, read_only=True)
+    categories = serializers.SerializerMethodField()
 
     class Meta:
         model = Department
@@ -28,12 +29,19 @@ class DepartmentSerializer(serializers.ModelSerializer):
             'id', 'name', 'description', 'email',
             'manager', 'manager_name',
             'auto_assign_to', 'auto_assign_to_name',
-            'is_active', 'member_count', 'sla_policies', 'created_at', 'updated_at',
+            'is_active', 'member_count', 'sla_policies', 'categories',
+            'created_at', 'updated_at',
         ]
         read_only_fields = ['created_at', 'updated_at']
 
     def get_member_count(self, obj):
         return obj.members.filter(is_active=True).count()
+
+    def get_categories(self, obj):
+        return [
+            {'id': c.id, 'name': c.name, 'color': c.color, 'slug': c.slug}
+            for c in obj.categories.filter(is_active=True).order_by('order', 'name')
+        ]
 
 
 class DepartmentMinimalSerializer(serializers.ModelSerializer):
