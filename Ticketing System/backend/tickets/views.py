@@ -69,6 +69,11 @@ class TicketViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['patch'], permission_classes=[IsAgentOrAbove])
     def assign(self, request, pk=None):
         ticket = self.get_object()
+        if ticket.status == Ticket.ESCALATED and not request.user.is_manager_or_above:
+            return Response(
+                {'error': 'This ticket is escalated. Only a manager or admin can reassign it.'},
+                status=403,
+            )
         assigned_to_id = request.data.get('assigned_to')
         department_id = request.data.get('department')
 
@@ -186,6 +191,11 @@ class TicketViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['patch'], permission_classes=[IsAgentOrAbove])
     def update_status(self, request, pk=None):
         ticket = self.get_object()
+        if ticket.status == Ticket.ESCALATED and not request.user.is_manager_or_above:
+            return Response(
+                {'error': 'This ticket is escalated. Only a manager or admin can update its status.'},
+                status=403,
+            )
         new_status = request.data.get('status')
         if new_status not in dict(Ticket.STATUS_CHOICES):
             return Response({'error': 'Invalid status.'}, status=400)

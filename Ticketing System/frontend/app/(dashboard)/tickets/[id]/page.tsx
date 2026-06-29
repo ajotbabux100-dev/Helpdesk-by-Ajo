@@ -413,107 +413,123 @@ export default function TicketDetailPage() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
               <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Actions</h2>
 
-              {/* Status update */}
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-gray-600 flex items-center gap-1.5">
-                  <RefreshCw className="w-3.5 h-3.5" /> Update Status
-                </label>
-                <select
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900/20 focus:border-blue-900"
-                >
-                  {STATUS_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
-                <Button
-                  onClick={updateStatus}
-                  className="w-full"
-                  loading={actionLoading}
-                  disabled={selectedStatus === ticket.status}
-                >
-                  <CheckCircle2 className="w-4 h-4 mr-1.5" /> Apply Status
-                </Button>
-              </div>
+              {/* Escalation lock — agents cannot act while ticket is escalated */}
+              {ticket.status === 'escalated' && user?.role === 'agent' ? (
+                <div className="flex items-start gap-3 bg-orange-50 border border-orange-200 rounded-xl p-4">
+                  <TrendingUp className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-orange-900">Awaiting manager action</p>
+                    <p className="text-xs text-orange-700 mt-0.5">
+                      This ticket is escalated. Only the manager can update its status, reassign it, or close it.
+                      You can still add comments.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Status update */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-gray-600 flex items-center gap-1.5">
+                      <RefreshCw className="w-3.5 h-3.5" /> Update Status
+                    </label>
+                    <select
+                      value={selectedStatus}
+                      onChange={(e) => setSelectedStatus(e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900/20 focus:border-blue-900"
+                    >
+                      {STATUS_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                    <Button
+                      onClick={updateStatus}
+                      className="w-full"
+                      loading={actionLoading}
+                      disabled={selectedStatus === ticket.status}
+                    >
+                      <CheckCircle2 className="w-4 h-4 mr-1.5" /> Apply Status
+                    </Button>
+                  </div>
 
-              {/* Assign */}
-              <div className="space-y-2 border-t border-gray-50 pt-4">
-                <label className="text-xs font-medium text-gray-600 flex items-center gap-1.5">
-                  <UserIcon className="w-3.5 h-3.5" /> Reassign To
-                </label>
-                <select
-                  value={selectedAgent}
-                  onChange={(e) => setSelectedAgent(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900/20 focus:border-blue-900"
-                >
-                  <option value="">Select agent...</option>
-                  {agents.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.full_name}{a.id === ticket.assigned_to ? ' (current)' : ''}
-                    </option>
-                  ))}
-                </select>
-                <Button
-                  onClick={assignAgent}
-                  variant="outline"
-                  className="w-full"
-                  loading={actionLoading}
-                  disabled={!selectedAgent}
-                >
-                  Reassign Ticket
-                </Button>
-              </div>
+                  {/* Assign */}
+                  <div className="space-y-2 border-t border-gray-50 pt-4">
+                    <label className="text-xs font-medium text-gray-600 flex items-center gap-1.5">
+                      <UserIcon className="w-3.5 h-3.5" /> Reassign To
+                    </label>
+                    <select
+                      value={selectedAgent}
+                      onChange={(e) => setSelectedAgent(e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900/20 focus:border-blue-900"
+                    >
+                      <option value="">Select agent...</option>
+                      {agents.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.full_name}{a.id === ticket.assigned_to ? ' (current)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      onClick={assignAgent}
+                      variant="outline"
+                      className="w-full"
+                      loading={actionLoading}
+                      disabled={!selectedAgent}
+                    >
+                      Reassign Ticket
+                    </Button>
+                  </div>
 
-              {/* Escalate to Manager — agents only, not already escalated */}
-              {user?.role === 'agent' && ticket.status !== 'escalated' && (
-                <div className="border-t border-gray-50 pt-4 space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => { setEscalateOpen((o) => !o); setEscalateError('') }}
-                    className="w-full flex items-center justify-between text-xs font-medium text-red-600 hover:text-red-700"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <TrendingUp className="w-3.5 h-3.5" /> Escalate to Manager
-                    </span>
-                    {escalateOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                  </button>
-                  {escalateOpen && (
-                    <div className="space-y-2 bg-red-50 border border-red-100 rounded-xl p-3">
-                      <p className="text-xs text-red-700">
-                        This will assign the ticket to the department manager and set status to <strong>Escalated</strong>.
-                      </p>
-                      <Textarea
-                        placeholder="Reason for escalation (optional)..."
-                        value={escalateReason}
-                        onChange={(e) => setEscalateReason(e.target.value)}
-                        rows={3}
-                        className="text-sm"
-                      />
-                      {escalateError && (
-                        <p className="text-xs text-red-600">{escalateError}</p>
+                  {/* Escalate to Manager — agents only, ticket not already escalated */}
+                  {user?.role === 'agent' && (
+                    <div className="border-t border-gray-50 pt-4 space-y-2">
+                      <button
+                        type="button"
+                        onClick={() => { setEscalateOpen((o) => !o); setEscalateError('') }}
+                        className="w-full flex items-center justify-between text-xs font-medium text-red-600 hover:text-red-700"
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <TrendingUp className="w-3.5 h-3.5" /> Escalate to Manager
+                        </span>
+                        {escalateOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      </button>
+                      {escalateOpen && (
+                        <div className="space-y-2 bg-red-50 border border-red-100 rounded-xl p-3">
+                          <p className="text-xs text-red-700">
+                            This will assign the ticket to the department manager and set status to <strong>Escalated</strong>.
+                          </p>
+                          <Textarea
+                            placeholder="Reason for escalation (optional)..."
+                            value={escalateReason}
+                            onChange={(e) => setEscalateReason(e.target.value)}
+                            rows={3}
+                            className="text-sm"
+                          />
+                          {escalateError && (
+                            <p className="text-xs text-red-600">{escalateError}</p>
+                          )}
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1"
+                              onClick={() => { setEscalateOpen(false); setEscalateReason(''); setEscalateError('') }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="flex-1 bg-red-600 hover:bg-red-700 text-white border-0"
+                              loading={actionLoading}
+                              onClick={escalateTicket}
+                            >
+                              <TrendingUp className="w-3.5 h-3.5 mr-1" /> Escalate
+                            </Button>
+                          </div>
+                        </div>
                       )}
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1"
-                          onClick={() => { setEscalateOpen(false); setEscalateReason(''); setEscalateError('') }}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="flex-1 bg-red-600 hover:bg-red-700 text-white border-0"
-                          loading={actionLoading}
-                          onClick={escalateTicket}
-                        >
-                          <TrendingUp className="w-3.5 h-3.5 mr-1" /> Escalate
-                        </Button>
-                      </div>
                     </div>
                   )}
-                </div>
+                </>
               )}
             </div>
           )}
